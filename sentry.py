@@ -9,7 +9,7 @@ DISCORD_WEBHOOK_URL = secrets.DISCORD_WEBHOOK
 
 
 MOTION_THRESHOLD = 1000
-RECORDING_BUFFER_SECONDS = 5
+RECORDING_DURATION_SECONDS = 30
 
 # Optional: keep recordings in a folder
 OUTPUT_DIR = "recordings"
@@ -83,6 +83,7 @@ def main():
 
     recording = False
     last_motion_time = 0
+    recording_start_time = None
     out = None
     filename = None
 
@@ -128,18 +129,19 @@ def main():
 
             fourcc = cv2.VideoWriter_fourcc(*"mp4v")
             out = cv2.VideoWriter(filename, fourcc, 20.0, (640, 480))
+            recording_start_time = time.time()
             print(f"Started recording: {filename}")
 
         # --- Recording loop ---
         if recording and out is not None:
             out.write(frame1)
 
-            # Stop if no motion for buffer seconds
-            if time.time() - last_motion_time > RECORDING_BUFFER_SECONDS:
+            # Stop after fixed duration
+            if time.time() - recording_start_time >= RECORDING_DURATION_SECONDS:
                 recording = False
                 out.release()
                 out = None
-                print("Motion stopped. Saving and uploading video...")
+                print("Recording completed after 30 seconds. Saving and uploading video...")
                 send_video_to_discord(filename, delete_on_success=True)
 
                 # reset event flags
